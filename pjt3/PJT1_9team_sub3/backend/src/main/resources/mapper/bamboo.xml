@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.BambooMapper">
+
+	<insert id="createBamboo" parameterType="BambooDto" useGeneratedKeys="true" keyProperty="bamboo_id">
+		insert into bamboo (user_id, bamboo_title, bamboo_description,
+		bamboo_image,bamboo_iframe,bamboo_header,bamboo_date, writer_nickname, is_used)
+		values ( #{user_id}, #{bamboo_title}, #{bamboo_description}, #{bamboo_image} ,
+		#{bamboo_iframe}, #{bamboo_header}, now(), #{writer_nickname},1)
+	</insert>
+
+	<select id="getAllList" parameterType="int" resultType="BambooDto">
+		select * 
+		from bamboo
+		where is_used = 1
+		order by bamboo_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="isWriter" parameterType="map" resultType="int">
+		select count(*)
+		from bamboo
+		where bamboo_id = #{bamboo_id} and user_id = #{login_id} and is_used = 1;	
+	</select>
+
+	<update id="bambooModify" parameterType="BambooDto">
+		update bamboo
+		set  bamboo_title=#{bamboo_title}, bamboo_description=#{bamboo_description},
+		bamboo_image=#{bamboo_image}, bamboo_iframe=#{bamboo_iframe}, 
+		bamboo_header=#{bamboo_header}, writer_nickname=#{writer_nickname}
+		where bamboo_id = #{bamboo_id} and is_used = 1;
+	</update>
+
+	<update id="bambooDelete" parameterType="int">
+		update bamboo
+		set is_used = 0
+		where bamboo_id=#{bamboo_id};
+	</update>
+
+	<select id="getTotalCnt" resultType="int">
+		select count(bamboo_id)
+		from bamboo
+		where is_used = 1;
+	</select>
+
+	<!-- search -->
+	<select id="getSearchCntT" resultType="int">
+		select count(bamboo_id)
+		from bamboo
+		where is_used = 1
+			and bamboo_title like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="getSearchCntD" resultType="int">
+		select count(bamboo_id)
+		from bamboo
+		where is_used = 1
+			and bamboo_description like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="searchPost" parameterType="map" resultType="BambooDto">
+		select * 
+		from bamboo
+		where ( bamboo_title like concat('%',#{keyword} ,'%') or bamboo_description like concat('%',#{keyword} ,'%') ) 
+		and is_used = 1
+		order by bamboo_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostT" parameterType="map" resultType="BambooDto">
+		select * 
+		from bamboo
+		where is_used = 1 and bamboo_title like concat('%',#{keyword} ,'%')
+		order by bamboo_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostD" parameterType="map" resultType="BambooDto">
+		select * 
+		from bamboo
+		where is_used = 1 and bamboo_description like concat('%',#{keyword} ,'%') 
+		order by bamboo_date desc
+		limit #{start}, #{size};
+	</select>
+
+</mapper>

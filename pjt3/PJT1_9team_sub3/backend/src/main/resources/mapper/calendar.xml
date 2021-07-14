@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.CalendarItemMapper">
+    <insert id="createCalendar" parameterType="CalendarItemDto" useGeneratedKeys="true" keyProperty="calendar_item_id">
+        insert into calendar_item(board_id, calendar_item_title,calendar_item_description,
+            calendar_item_datetime_start, calendar_item_datetime_end,is_used)
+        values(#{board_id}, #{calendar_item_title}, #{calendar_item_description},
+            #{calendar_item_datetime_start},#{calendar_item_datetime_end},1);
+    </insert>
+
+    <select id="readCalendar" parameterType="string" resultType="CalendarItemDto">
+        select *
+        from calendar_item
+        where board_id = #{board_id} and is_used = 1;
+    </select>
+
+    <!-- 한개만 수정 -->
+    <update id="updateCalendar" parameterType="CalendarItemDto">
+        update calendar_item
+        set calendar_item_title = #{calendar_item_title}, calendar_item_description = #{calendar_item_description}, 
+        calendar_item_datetime_start = #{calendar_item_datetime_start}, calendar_item_datetime_end = #{calendar_item_datetime_end}
+        where calendar_item_id = #{calendar_item_id}  and is_used = 1;
+    </update>
+
+    <update id="deleteCalendar" parameterType="string">
+        update calendar_item
+        set is_used = 0
+        where calendar_item_id=#{calendar_item_id} and is_used = 1;
+    </update>
+
+    <select id="getDeadline" resultType="CalendarItemDto">
+        select *
+        from calendar_item
+        where board_id = 123 and is_used = 1
+        and date(now()) >= date(subdate(calendar_item_datetime_end, INTERVAL 7 DAY)) 
+        and date(calendar_item_datetime_end) >= date(now());
+    </select>
+</mapper>

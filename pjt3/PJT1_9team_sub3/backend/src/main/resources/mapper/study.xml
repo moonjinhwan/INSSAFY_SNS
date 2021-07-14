@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.StudyMapper">
+
+	<select id="getPromoList" parameterType="map" resultType="map">
+		select p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, l.like_count, c.comment_count
+		from (select post_id, count(post_id) as like_count
+			  from postLike 
+			  where is_used = 1
+			  group by post_id) as l 
+			  right outer join 
+			  post as p 
+			  on l.post_id = p.post_id 
+			  left outer join
+			  (select post_id, count(post_id) as comment_count
+			  from comment
+			  where is_used = 1
+			  group by post_id) as c 
+			  on p.post_id = c.post_id 
+		where p.board_id = 120 and p.is_used = 1
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="getStudyId" parameterType="string" resultType="int">
+		select board_id
+		from subscription
+		where user_id = #{login_id} and is_used = 1;
+	</select>
+
+	<select id="getStudyInfo" parameterType="int" resultType="map">
+		select b.board_name, b.board_description, b.board_id, b.board_image, c.board_count
+		from board as b
+		left outer join
+		(select board_id, count(board_id) as board_count
+		from subscription
+		where is_used = 1
+		group by board_id) as c
+		on b.board_id = c.board_id
+		where b.board_id = #{board_id} and b.board_state = 3 and b.is_used = 1
+		order by b.board_date desc;
+	</select>
+
+	<select id="getAllList" parameterType="map" resultType="map">
+		select b.board_name, b.board_description, b.board_id, b.board_image, c.board_count
+		from board as b
+		left outer join
+		(select board_id, count(board_id) as board_count
+		from subscription
+		where is_used = 1
+		group by board_id) as c
+		on b.board_id = c.board_id
+		where b.board_state = 3 and b.is_used = 1
+		order by b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="getTotalCnt" resultType="int">
+		select count(board_id)
+		from board
+		where board_state = 3 and is_used = 1;
+	</select>
+
+	<insert id="request" parameterType="map">
+		insert into study_request (board_id, user_id, request_state) 
+		values ( #{board_id}, #{user_id}, 0);
+	</insert>
+
+	<select id="getRequestList" parameterType="int" resultType="map">
+		select u.user_id, u.user_nickname, u.user_image
+		from user as u left outer join study_request as s on u.user_id = s.user_id
+		where s.board_id = #{board_id} and s.request_state = 0;
+	</select>
+
+	<update id="requestProcess" parameterType="map">
+		update study_request
+		set request_state = #{option}
+		where board_id = #{board_id} and user_id = #{user_id};
+	</update>
+
+	<update id="secession" parameterType="map">
+		update study_request
+		set request_state = 2
+		where board_id = #{board_id} and user_id = #{user_id};
+	</update>
+
+	<update id="reSubscription" parameterType="map">
+		update study_request
+		set request_state = 0
+		where board_id = #{board_id} and user_id = #{user_id};
+	</update>
+
+	<select id="myRequestList" parameterType="String" resultType="map">
+		select board_id, request_state
+		from study_request
+		where user_id=#{user_id} and request_state IN(0,-1);
+	</select>
+
+	<select id="myStudyRequest" parameterType="map" resultType="map">
+		select request_state
+		from study_request
+		where board_id = #{board_id} and user_id = #{user_id};
+	</select>
+
+</mapper>

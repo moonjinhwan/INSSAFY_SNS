@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.MainMapper">
+
+  <select id="selectFavorite" parameterType="String" resultType="BoardDto">
+    select *
+    from board
+    where board_id in (select board_id from subscription where favorite_flag = 1 and user_id = #{user_id} and is_used=1);
+  </select>
+
+  <select id="getSubsriptionNumber" parameterType="String" resultType="Integer">
+    select count(*)
+    from subscription
+    where board_id = #{board_id}
+  </select>
+
+  <select id="getRecentFive" parameterType="String" resultType="PostDto">
+    select *
+    from post
+    where board_id = #{board_id} and is_used =1
+    order by post_id desc
+    limit 0,5;
+  </select>
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.CommentMapper">
+
+	<insert id="createComment" parameterType="CommentDto" useGeneratedKeys="true" keyProperty="comment_id">
+		insert into comment (user_id, post_id, comment_description,
+		comment_date, is_used)
+		values ( #{user_id}, #{post_id}, #{comment_description}, now(),1)
+	</insert>
+
+	<update id="commentModify" parameterType="CommentDto">
+		update comment
+		set  comment_description=#{comment_description}
+		where comment_id = #{comment_id}
+	</update>
+
+	<update id="commentDelete" parameterType="int">
+		update comment
+		set is_used = 0
+		where comment_id = #{comment_id}
+	</update>
+
+	<select id="isCommentWriter" parameterType="map" resultType="int">
+		select count(*)
+		from comment
+		where comment_id = #{comment_id} and user_id = #{login_id} and is_used = 1;	
+	</select>
+
+	<select id="getPostIdByCommentId" parameterType="int" resultType="String">
+		select post_id
+		from comment
+		where is_used=1 and comment_id = #{comment_id}
+	</select>
+</mapper>

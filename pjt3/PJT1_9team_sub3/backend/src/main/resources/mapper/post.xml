@@ -1,0 +1,756 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.PostMapper">
+
+	<insert id="createPost" parameterType="PostDto" useGeneratedKeys="true" keyProperty="post_id">
+		insert into post (user_id, board_id, post_title, post_description,
+		post_image,post_iframe,post_header,post_state,post_date,post_like, is_used)
+		values ( #{user_id}, #{board_id}, #{post_title}, #{post_description} ,
+		#{post_image}, #{post_iframe}, #{post_header}, #{post_state},now(),0,1)
+	</insert>
+
+	<select id="getPostById" parameterType="int" resultType="PostDto">
+		select * 
+		from post
+		where post_id = #{post_id} and is_used = 1;
+	</select>
+
+	<update id="postModify" parameterType="PostDto">
+		update post
+		set  post_title=#{post_title}, post_description=#{post_description},
+		post_image=#{post_image}, post_iframe=#{post_iframe}, post_header=#{post_header}, post_state=#{post_state}
+		where post_id = #{post_id}
+	</update>
+
+	<update id="stateModify" parameterType="map">
+		update post
+		set  post_state = #{post_state}
+		where post_id = #{post_id}
+	</update>
+
+	<update id="postDelete" parameterType="int">
+		update post
+		set is_used = 0
+		where post_id=#{post_id}
+	</update>
+
+	<select id="isScrapped" parameterType="map" resultType="int">
+		select count(*)
+		from scrap
+		where post_id = #{post_id} and user_id = #{user_id};	
+	</select>
+
+	<insert id="scrap" parameterType="map">
+		insert into scrap values (
+		#{post_id}, #{user_id}, 1
+		)
+	</insert>
+
+	<select id="isUnScrapped" parameterType="map" resultType="int">
+		select count(*)
+		from scrap
+		where post_id = #{post_id} and user_id = #{user_id} and is_used = 1;	
+	</select>
+
+	<update id="updateScrap" parameterType="map">
+		update scrap
+		set is_used = 1 
+		where post_id = #{post_id} and user_id = #{user_id};
+	</update>
+
+	<update id="deleteScrap" parameterType="map"> 
+		update scrap
+		set is_used = 0 
+		where post_id = #{post_id} and user_id = #{user_id};
+	</update>
+
+	<select id="isLiked" parameterType="map" resultType="int">
+		select count(*)
+		from postLike
+		where post_id = #{post_id} and user_id = #{user_id};	
+	</select>
+
+	<insert id="like" parameterType="map">
+		insert into postLike values (
+		#{post_id}, #{user_id}, 1
+		)
+	</insert>
+
+	<select id="isUnLiked" parameterType="map" resultType="int">
+		select count(*)
+		from postLike
+		where post_id = #{post_id} and user_id = #{user_id} and is_used = 1;	
+	</select>
+
+	<update id="updateLike" parameterType="map">
+		update postLike
+		set is_used = 1
+		where post_id = #{post_id} and user_id = #{user_id};
+	</update>
+
+	<update id="plusCount" parameterType="map">
+		update post 
+		set post_like = post_like + 1
+		where post_id = #{post_id};
+	</update>
+
+	<update id="unlike" parameterType="map"> 
+		update postLike 
+		set is_used = 0
+		where post_id = #{post_id} and user_id = #{user_id};
+	</update>
+
+	<update id="minusCount" parameterType="map">
+		update post 
+		set post_like = post_like - 1
+		where post_id = #{post_id};
+	</update>
+
+	<select id="getPostLikeCount" parameterType="int" resultType="int">
+		select count(*)
+		from postLike
+		where post_id = #{post_id} and is_used = 1;	
+	</select>
+
+	<select id="getComment" parameterType="int" resultType="map">
+		select c.comment_id, c.post_id, c.user_id, c.comment_description, c.comment_date, u.user_nickname, u.user_image
+		from comment as c left outer join user as u
+		on c.user_id = u.user_id
+		where c.post_id = #{post_id} and c.is_used = 1 and u.is_used = 1
+		order by c.comment_id;	
+	</select>
+
+	<select id="getPostList" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from  post as p 
+			  left outer join
+			  (select post_id, count(post_id) as comment_count
+			  from comment
+			  where is_used = 1
+			  group by post_id) as c 
+			  on p.post_id = c.post_id
+			  left outer join user as u
+			  on p.user_id = u.user_id 
+			  left outer join
+			  (select *
+			  from postLike
+			  where user_id = #{user_id} and is_used = 1) as pl
+			  on p.post_id = pl.post_id
+			  left outer join 
+			  (select *
+			  from scrap
+			  where user_id = #{user_id} and is_used = 1) as s
+			  on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<update id="deleteScrapAll" parameterType="int"> 
+		update scrap
+		set is_used = 0 
+		where post_id = #{post_id};
+	</update>
+
+	<update id="deleteLikeAll" parameterType="int"> 
+		update postLike
+		set is_used = 0 
+		where post_id = #{post_id};
+	</update>
+
+	<update id="deleteCommentAll" parameterType="int"> 
+		update comment
+		set is_used = 0 
+		where post_id = #{post_id};
+	</update>
+
+	<select id="getSalesList" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, l.like_count, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from (select post_id, count(post_id) as like_count
+			  from postLike 
+			  where is_used = 1
+			  group by post_id) as l right outer join post as p 
+			  on l.post_id = p.post_id 
+			  left outer join
+			  (select post_id, count(post_id) as comment_count
+			  from comment
+			  where is_used = 1
+			  group by post_id) as c 
+			  on p.post_id = c.post_id 
+			  left outer join user as u
+			  on p.user_id = u.user_id 
+			  left outer join
+			  (select *
+			  from postLike
+			  where user_id = #{user_id} and is_used = 1) as pl
+			  on p.post_id = pl.post_id
+			  left outer join 
+			  (select *
+			  from scrap
+			  where user_id = #{user_id} and is_used = 1) as s
+			  on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1 and p.post_state != -1
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="marketPostNew" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+			where user_id = #{user_id} and is_used = 1) as s
+			on p.post_id = s.post_id
+		where ( p.post_title like concat('%',#{keyword} ,'%') or p.post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%') )
+			and p.board_id = #{board_id} and p.is_used = 1 and p.post_state != -1
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="marketPostPopular" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+			where user_id = #{user_id} and is_used = 1) as s
+			on p.post_id = s.post_id
+		where (p.post_title like concat('%',#{keyword} ,'%') or p.post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%'))
+			and p.board_id = #{board_id} and p.is_used = 1 and p.post_state != -1
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="getWriterName" parameterType="string" resultType="string">
+		select user_nickname
+		from user
+		where user_id = #{user_id};
+	</select>
+
+	<select id="getWriterImage" parameterType="string" resultType="string">
+		select user_image
+		from user
+		where user_id = #{user_id};
+	</select>
+
+	<select id="isWriter" parameterType="map" resultType="int">
+		select count(*)
+		from post
+		where post_id = #{post_id} and user_id = #{login_id} and is_used = 1;	
+	</select>
+
+	<select id="getSalesCnt" parameterType="map" resultType="int">
+		select count(post_id)
+		from post 
+		where board_id = 76 and post_state != -1 and is_used = 1;
+	</select>
+	
+	<select id="searchSalesCnt" resultType="int">
+		select count(post_id)
+		from post
+		where (post_title like concat('%',#{keyword} ,'%') or post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%') )
+		and board_id = 34 and is_used = 1 and post_state != -1
+	</select>
+
+	<select id="getTotalPostCnt" parameterType="int" resultType="int">
+		select count(post_id)
+		from post 
+		where board_id = #{board_id} and is_used = 1;
+	</select>
+
+	<select id="getHeaderByID" parameterType="int" resultType="string">
+		select post_header
+		from post
+		where post_id = #{post_id};
+	</select>
+
+	<select id="getBoardState" parameterType="int" resultType="int">
+		select board_state
+		from board
+		where board_id = #{board_id};
+	</select>
+
+	<select id="getBoardStateById" parameterType="int" resultType="int">
+		select b.board_state
+		from board as b join post as p
+		on b.board_id = p.board_id
+		where p.post_id = #{post_id};
+	</select>
+
+	<!-- search -->
+	
+	<select id="getAllSearchPostCntH" parameterType="string" resultType="int">
+		select count(post_id)
+		from post
+		where is_used = 1 and post_state = 0
+			and post_header like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="getAllSearchPostCntT" parameterType="string" resultType="int">
+		select count(post_id)
+		from post
+		where is_used = 1 and post_state = 0
+			and post_title like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="getAllSearchPostCntD" parameterType="string" resultType="int">
+		select count(post_id)
+		from post
+		where is_used = 1 and post_state = 0 
+			and post_description like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="getAllSearchPostCnt" parameterType="string" resultType="int">
+		select count(post_id)
+		from post
+		where is_used = 1 and post_state = 0
+			and ( post_title like concat('%',#{keyword} ,'%') or post_description like concat('%',#{keyword} ,'%')
+			or post_header like concat('%',#{keyword} ,'%') );
+	</select>
+
+	<select id="searchPostNew" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and ( p.post_title like concat('%',#{keyword} ,'%') or p.post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%') ) 
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostNewH" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and p.post_header like concat('%',#{keyword} ,'%')
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostNewT" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and p.post_title like concat('%',#{keyword} ,'%')
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostNewD" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and p.post_description like concat('%',#{keyword} ,'%')
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostPopular" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and ( p.post_title like concat('%',#{keyword} ,'%') or p.post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%') ) 
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostPopularH" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and p.post_header like concat('%',#{keyword} ,'%') 
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostPopularT" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and p.post_title like concat('%',#{keyword} ,'%')
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchPostPopularD" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image,p.board_id
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+		where p.is_used = 1 and p.post_state = 0
+			and p.post_description like concat('%',#{keyword} ,'%')
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+	
+	<select id="getSearchPostCnt" parameterType="map" resultType="int">
+		select count(post_id)
+		from post
+		where board_id = #{board_id} and is_used = 1
+			and ( post_title like concat('%',#{keyword} ,'%') or post_description like concat('%',#{keyword} ,'%')
+			or post_header like concat('%',#{keyword} ,'%') );
+	</select>
+
+	<select id="getSearchPostCntT" parameterType="map" resultType="int">
+		select count(post_id)
+		from post
+		where board_id = #{board_id} and is_used = 1
+			and post_title like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="getSearchPostCntD" parameterType="map" resultType="int">
+		select count(post_id)
+		from post
+		where board_id = #{board_id} and is_used = 1
+			and post_description like concat('%',#{keyword} ,'%');
+	</select>
+
+	<select id="getSearchPostCntH" parameterType="map" resultType="int">
+		select count(post_id)
+		from post
+		where board_id = #{board_id} and is_used = 1
+			and post_header like concat('%',#{keyword} ,'%');  
+	</select>
+
+	<select id="boardPostNew" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+			where user_id = #{user_id} and is_used = 1) as s
+			on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and ( p.post_title like concat('%',#{keyword} ,'%') or p.post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%') )
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostNewT" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+			where user_id = #{user_id} and is_used = 1) as s
+			on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and p.post_title like concat('%',#{keyword} ,'%')
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostNewD" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+			where user_id = #{user_id} and is_used = 1) as s
+			on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and p.post_description like concat('%',#{keyword} ,'%')
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostNewH" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, c.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+			where user_id = #{user_id} and is_used = 1) as s
+			on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and p.post_header like concat('%',#{keyword} ,'%') 
+		order by p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostPopular" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+		where user_id = #{user_id} and is_used = 1) as s
+		on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and ( p.post_title like concat('%',#{keyword} ,'%') or p.post_description like concat('%',#{keyword} ,'%')
+			or p.post_header like concat('%',#{keyword} ,'%') )
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostPopularT" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+		where user_id = #{user_id} and is_used = 1) as s
+		on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and p.post_title like concat('%',#{keyword} ,'%')
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostPopularD" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+		where user_id = #{user_id} and is_used = 1) as s
+		on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and p.post_description like concat('%',#{keyword} ,'%')
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="boardPostPopularH" parameterType="map" resultType="map">
+		select p.post_like, p.post_id, p.user_id, p.post_date, p.post_title, p.post_description, p.post_image, p.post_iframe, 
+		p.post_header, p.post_state, co.comment_count, u.user_nickname, u.user_image, pl.is_used as isLiked, s.is_used as isScrapped
+		from post as p left outer join (select count(post_id) as like_count, post_id from postLike group by post_id) as c 
+			on p.post_id = c.post_id
+			left outer join
+			(select post_id, count(post_id) as comment_count
+			from comment
+			where is_used = 1
+			group by post_id) as co 
+			on p.post_id = co.post_id
+			left outer join user as u
+			on p.user_id = u.user_id
+			left outer join
+			(select *
+			from postLike
+			where user_id = #{user_id} and is_used = 1) as pl
+			on p.post_id = pl.post_id
+			left outer join 
+			(select *
+			from scrap
+		where user_id = #{user_id} and is_used = 1) as s
+		on p.post_id = s.post_id
+		where p.board_id = #{board_id} and p.is_used = 1
+			and p.post_header like concat('%',#{keyword} ,'%') 
+		order by c.like_count desc, p.post_date desc
+		limit #{start}, #{size};
+	</select>
+
+</mapper>

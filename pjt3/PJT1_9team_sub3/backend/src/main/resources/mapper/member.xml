@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.UserMapper">
+
+	<select id="login" parameterType="UserDto" resultType="UserDto">
+		select * 
+		from user 
+		where user_email=#{user_email} and is_used = 1;
+	</select>
+
+	<insert id="join" parameterType="UserDto">
+		insert into user values (
+		#{user_id}, #{user_email}, #{user_password}, #{user_nickname}, #{user_location} ,
+		#{user_generation}, #{user_image}, #{user_auth}, #{user_authKey}, #{is_used}
+		)
+	</insert>
+
+	<insert id="joinCuration" parameterType="map">
+		insert into subscription values (
+		#{board_id}, #{user_id}, 0, 0, 0, 1
+		)
+	</insert>
+
+	<select id="emailCheck" parameterType="String" resultType="integer">
+		select count(*)
+		from user
+		where user_email=#{user_email} and is_used = 1;
+	</select>
+
+	<update id="updateAuthKey" parameterType="map">
+        update user set
+        user_authKey = #{user_authKey}
+        where user_email = #{user_email} and is_used = 1;
+    </update>
+
+	<update id="updateAuthStatus" parameterType="map">
+        update user set
+        user_auth = 1
+        where user_email = #{email} and is_used = 1;
+    </update>
+
+	<update id="updatePw" parameterType="map">
+        update user set
+        user_password = #{pw}
+        where user_email = #{email} and is_used = 1;
+    </update>
+
+	<select id="userInfo" parameterType="string" resultType="UserDto">
+		select *
+		from user
+		where user_id=#{user_id} and is_used = 1;
+	</select>
+
+	<update id="userModify" parameterType="userDto">
+		update user
+		set user_image = #{user_image}, user_nickname=#{user_nickname}, user_location=#{user_location}, user_generation=#{user_generation}
+		where user_email = #{user_email} and is_used = 1;
+	</update>
+
+	<update id="userDelete" parameterType="String">
+		update user 
+		set is_used = 0
+		where user_id = #{user_id} and is_used = 1;
+	</update>
+
+	<select id="getSubBoards" parameterType="string" resultType="SubscriptionDto">
+		select *
+		from subscription
+		where user_id = #{user_id} and is_used = 1;
+	</select>
+
+	<select id="getComments" parameterType="string" resultType="Map">
+		select p.post_title, c.user_id, c.comment_date, c.comment_id, c.comment_description, p.post_id, p.board_id
+		from comment c left join post p on (c.post_id=p.post_id)
+		where c.user_id=#{user_id} and c.is_used=1;
+	</select>
+
+	<select id="getPosts" parameterType="string" resultType="Map">
+		select b.board_id, post_id, b.user_id, b.board_image, post_description, post_title, b.board_name, p.post_date, p.post_like
+		from board b left join post p on b.board_id=p.board_id
+		where p.user_id=#{user_id} and p.is_used=1;
+	</select>
+
+	<!-- 스크랩 가지고오기-->
+	<select id="getScraps" parameterType="string" resultType="Map">
+		select b.board_name, p.post_id, p.post_title, b.board_id, b.board_image, p.post_date, p.post_description
+		from board b 
+			inner join post p on (b.board_id=p.board_id) 
+			inner join scrap s on (p.post_id=s.post_id)
+		where s.user_id=#{user_id} and s.is_used=1;
+	</select>
+
+	<!-- 즐겨찾기-->
+	<update id="favorite" parameterType="Map">
+		update subscription
+		set favorite_flag=IF(favorite_flag=1, 0, 1)
+		where user_id = #{user_id} and board_id = #{board_id} and is_used = 1;
+	</update>
+
+	<!-- 구독 취소 -->
+	<update id="deleteSubscribe" parameterType="Map">
+		update subscription
+		set is_used = 0
+		where user_id = #{user_id} and board_id = #{board_id} and is_used = 1;
+	</update>
+
+	<!-- 퀴즈 정답 확인-->
+	<select id="quizCheck" parameterType="string" resultType="Integer">
+		select count(*)
+		from quiz
+		where quiz_answer like #{answer}
+	</select>
+
+	<!-- id로 객체 받기-->
+	<select id="userDtoById" parameterType="string" resultType="UserDto">
+		select *
+		from user
+		where user_id = #{user_id} and is_used=1;
+	</select>
+</mapper>

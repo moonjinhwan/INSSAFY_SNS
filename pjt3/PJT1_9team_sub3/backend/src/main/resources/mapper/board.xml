@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.mapper.BoardMapper">
+
+	<insert id="createBoard" parameterType="BoardDto" useGeneratedKeys="true" keyProperty="board_id">
+		insert into board (board_name, board_description, board_image, board_igmyeong,
+		board_location,board_hash,board_date,user_id,is_used, board_state)
+		values ( #{board_name}, #{board_description}, #{board_image}, #{board_igmyeong} ,
+		#{board_location}, #{board_hash}, now(), #{user_id},1, #{board_state})
+	</insert>
+
+	<insert id="subscribe" parameterType="map">
+		insert into subscription values (
+		#{board_id}, #{user_id}, 0, 0, #{user_role}, 1
+		)
+	</insert>
+
+	<insert id="addFunction" parameterType="map">
+		insert into add_function values (
+		#{board_id}, #{checklist_flag}, #{calendar_flag}, #{vote_flag}, #{user_rank_flag}, 1
+		)
+	</insert>
+
+	<select id="isSubscribed" parameterType="map" resultType="int">
+		select count(*)
+		from subscription 
+		where board_id = #{board_id} and user_id = #{user_id};	
+	</select>
+
+	<select id="isUnSubscribed" parameterType="map" resultType="int">
+		select count(*)
+		from subscription 
+		where board_id = #{board_id} and user_id = #{user_id} and is_used = 1;	
+	</select>
+
+	<update id="updateSubscribe"> 
+		update subscription 
+		set is_used = 1
+		where board_id = #{board_id} and user_id = #{user_id};
+	</update>
+
+	<update id="unsubscribe"> 
+		update subscription 
+		set is_used = 0
+		where board_id = #{board_id} and user_id = #{user_id} and user_role != 1;
+	</update>
+
+	<select id="searchUser" parameterType="string" resultType="UserDto">
+		select *
+		from user
+		where user_email like concat('%',#{user_name} ,'%') and is_used = 1;
+	</select>
+
+	<update id="updateManager" parameterType="map">
+		update subscription
+		set user_role = 1
+		where board_id = #{board_id} and user_id = #{user_id};
+	</update>
+
+	<update id="modifyBoard" parameterType="BoardDto">
+		update board
+		set board_name = #{board_name}, board_description = #{board_description}, board_image=#{board_image}, 
+		board_igmyeong=#{board_igmyeong}, board_location=#{board_location}, board_hash=#{board_hash}
+		where board_id = #{board_id}
+	</update>
+
+	<select id="getBoardsNew" parameterType="map" resultType="map">
+		select *
+		from board
+		where is_used = 1 and board_state = 0
+		order by board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="getBoardsPopular" parameterType="map" resultType="map">
+		select b.board_id, b.board_name,b.board_description,b.board_image,b.board_location,b.board_hash,
+        b.board_date,b.user_id,b.board_state, c.board_count as subscription_count
+		from board as b left outer join (select count(board_id) as board_count, board_id from subscription group by board_id) as c 
+		on b.board_id = c.board_id
+		where b.is_used = 1 and b.board_state = 0
+		order by c.board_count desc, b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<update id="deleteBoard" parameterType="int">
+		update board
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<select id="detailBoard" parameterType="int" resultType="BoardDto">
+		select *
+		from board 
+		where board_id = #{board_id} and is_used = 1;
+	</select>
+
+	<update id="deleteBoardAll" parameterType="int">
+		update add_function
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<update id="deleteSubscription" parameterType="int">
+		update subscription
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<update id="deletePostAll" parameterType="int">
+		update post
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<update id="deleteCalendar" parameterType="int">
+		update calendar_item
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<update id="deleteCheckList" parameterType="int">
+		update check_list_item
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<update id="deleteVote" parameterType="int">
+		update vote
+		set is_used = 0
+		where board_id=#{board_id};
+	</update>
+
+	<select id="getVoteList" parameterType="int" resultType="int">
+		select vote_id
+		from vote
+		where board_id = #{board_id} and is_used = 1;
+	</select>
+
+	<select id="getPostList" parameterType="int" resultType="int">
+		select post_id
+		from post
+		where board_id = #{board_id} and is_used = 1;
+	</select>
+
+	<select id="getBoardCount" resultType="int">
+		select count(*)
+		from subscription
+		where board_id = #{board_id} and is_used = 1;
+	</select>
+
+	<select id="getIdbyPostId" resultType="int">
+		select board_id
+		from post
+		where post_id = #{post_id} and is_used = 1;
+	</select>
+
+	<select id="isManager" parameterType="map" resultType="int">
+		select count(*)
+		from subscription
+		where board_id = #{board_id} and user_id = #{login_id} and is_used = 1
+		and user_role = 1;	
+	</select>
+
+	<select id="getBoardInfo" parameterType="string" resultType="map">
+		select board_id, board_name, board_image
+		from board
+		where board_id = #{board_id} and is_used=1;
+	</select>
+
+	<select id="getTotalCnt" resultType="int">
+		select count(board_id)
+		from board
+		where is_used = 1 and board_state = 0;
+	</select>
+
+	<select id="boardFunc" parameterType="int" resultType="map">
+		select checklist_flag, calendar_flag, vote_flag, user_rank_flag
+		from add_function
+		where is_used = 1 and board_id = #{board_id};
+	</select>
+
+	<update id="addChecklist" parameterType="map">
+		update add_function
+		set checklist_flag = #{option}
+		where board_id=#{board_id};
+	</update>
+
+	<update id="addCalendar" parameterType="map">
+		update add_function
+		set calendar_flag = #{option}
+		where board_id=#{board_id};
+	</update>
+
+	<update id="addVote" parameterType="map">
+		update add_function
+		set vote_flag = #{option}
+		where board_id=#{board_id};
+	</update>
+
+	<!-- 유저랭킹 추가-->
+	<update id="addUserRank" parameterType="map">
+		update add_function
+		set user_rank_flag = #{option}
+		where board_id=#{board_id};
+	</update>
+
+	<!-- search -->
+	<select id="getSearchCnt" parameterType="string" resultType="int">
+		select count(board_id)
+		from board
+		where ( board_name like concat('%',#{keyword} ,'%') or board_description like concat('%',#{keyword} ,'%')
+		or board_hash like concat('%',#{keyword} ,'%') )
+		and is_used = 1 and board_state = 0;
+	</select>
+
+	<select id="getSearchCntN" parameterType="string" resultType="int">
+		select count(board_id)
+		from board
+		where board_name like concat('%',#{keyword} ,'%')
+		and is_used = 1 and board_state = 0;
+	</select>
+
+	<select id="getSearchCntD" parameterType="string" resultType="int">
+		select count(board_id)
+		from board
+		where board_description like concat('%',#{keyword} ,'%')
+		and is_used = 1 and board_state = 0;
+	</select>
+
+	<select id="getSearchCntL" parameterType="string" resultType="int">
+		select count(board_id)
+		from board
+		where board_location like concat('%',#{keyword} ,'%')
+		and is_used = 1 and board_state = 0;
+	</select>
+
+	<select id="getSearchCntH" parameterType="string" resultType="int">
+		select count(board_id)
+		from board
+		where board_hash like concat('%',#{keyword} ,'%') 
+		and is_used = 1 and board_state = 0;
+	</select>
+	
+	<select id="searchBoardNew" parameterType="map" resultType="map">
+		select *
+		from board
+		where board_name like concat('%',#{keyword} ,'%') or board_description like concat('%',#{keyword} ,'%')
+			or board_hash like concat('%',#{keyword} ,'%') ) 
+			and is_used = 1 and board_state = 0
+		order by board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardNewN" parameterType="map" resultType="map">
+		select *
+		from board
+		where board_name like concat('%',#{keyword} ,'%')
+			and is_used = 1 and board_state = 0
+		order by board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardNewD" parameterType="map" resultType="map">
+		select *
+		from board
+		where board_description like concat('%',#{keyword} ,'%')
+			and is_used = 1 and board_state = 0
+		order by board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardNewL" parameterType="map" resultType="map">
+		select *
+		from board
+		where board_location like concat('%',#{keyword} ,'%')
+			and is_used = 1 and board_state = 0
+		order by board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardNewH" parameterType="map" resultType="map">
+		select *
+		from board
+		where board_hash like concat('%',#{keyword} ,'%') 
+			and is_used = 1 and board_state = 0
+		order by board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardPopular" parameterType="map" resultType="map">
+		select b.board_id, b.board_name,b.board_description,b.board_image,b.board_location,b.board_hash,
+        b.board_date,b.user_id,b.board_state, c.board_count as subscription_count
+		from board as b join (select count(board_id) as board_count, board_id from subscription group by board_id) as c 
+		on b.board_id = c.board_id
+		where ( b.board_name like concat('%',#{keyword} ,'%') or b.board_description like concat('%',#{keyword} ,'%')
+		or b.board_hash like concat('%',#{keyword} ,'%') ) 
+		and b.is_used = 1 and b.board_state = 0
+		order by c.board_count desc, b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardPopularN" parameterType="map" resultType="map">
+		select b.board_id, b.board_name,b.board_description,b.board_image,b.board_location,b.board_hash,
+        b.board_date,b.user_id,b.board_state, c.board_count as subscription_count
+		from board as b join (select count(board_id) as board_count, board_id from subscription group by board_id) as c 
+		on b.board_id = c.board_id
+		where b.board_name like concat('%',#{keyword} ,'%')
+			and b.is_used = 1 and b.board_state = 0
+		order by c.board_count desc, b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardPopularD" parameterType="map" resultType="map">
+		select b.board_id, b.board_name,b.board_description,b.board_image,b.board_location,b.board_hash,
+        b.board_date,b.user_id,b.board_state, c.board_count as subscription_count
+		from board as b join (select count(board_id) as board_count, board_id from subscription group by board_id) as c 
+		on b.board_id = c.board_id
+		where b.board_description like concat('%',#{keyword} ,'%')
+			and b.is_used = 1 and b.board_state = 0
+		order by c.board_count desc, b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardPopularL" parameterType="map" resultType="map">
+		select b.board_id, b.board_name,b.board_description,b.board_image,b.board_location,b.board_hash,
+        b.board_date,b.user_id,b.board_state, c.board_count as subscription_count
+		from board as b join (select count(board_id) as board_count, board_id from subscription group by board_id) as c 
+		on b.board_id = c.board_id
+		where b.board_location like concat('%',#{keyword} ,'%')
+			and b.is_used = 1 and b.board_state = 0
+		order by c.board_count desc, b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+	<select id="searchBoardPopularH" parameterType="map" resultType="map">
+		select b.board_id, b.board_name,b.board_description,b.board_image,b.board_location,b.board_hash,
+        b.board_date,b.user_id,b.board_state, c.board_count as subscription_count
+		from board as b join (select count(board_id) as board_count, board_id from subscription group by board_id) as c 
+		on b.board_id = c.board_id
+		where b.board_hash like concat('%',#{keyword} ,'%') 
+			and b.is_used = 1 and b.board_state = 0
+		order by c.board_count desc, b.board_date desc
+		limit #{start}, #{size};
+	</select>
+
+</mapper>
