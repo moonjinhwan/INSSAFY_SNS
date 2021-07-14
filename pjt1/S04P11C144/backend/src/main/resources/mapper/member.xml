@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.pjt1.model.dao.UserDao">
+
+	<select id="loginDao" parameterType="UserDto" resultType="String">
+		select email from user where email=#{email};
+	</select>
+
+	<insert id="joinDao" parameterType="UserDto">
+		insert into user (uid, password, email) values(#{uid}, #{password}, #{email});
+	</insert>
+
+</mapper>
